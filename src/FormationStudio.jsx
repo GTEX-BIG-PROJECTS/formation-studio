@@ -980,6 +980,8 @@ export default function FormationStudio() {
   const [formation, setFormation] = useState(formationNames[0]);
   const [players, setPlayers] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
+  const [sheetOpenId, setSheetOpenId] = useState(null);
+  const pointerStartRef = useRef({ x: 0, y: 0, moved: false });
   const [teamName, setTeamName] = useState('FORMATION XI');
   const [coach, setCoach] = useState('C. KLOPPFORD');
   const [primary, setPrimary] = useState('#e63946');
@@ -1023,6 +1025,9 @@ export default function FormationStudio() {
   /* drag handlers */
   const onPointerDown = (id) => (e) => {
     e.preventDefault();
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    pointerStartRef.current = { x: cx, y: cy, moved: false };
     setDraggingId(id);
     setSelectedId(id);
   };
@@ -1034,11 +1039,24 @@ export default function FormationStudio() {
       const rect = fieldRef.current.getBoundingClientRect();
       const cx = e.touches ? e.touches[0].clientX : e.clientX;
       const cy = e.touches ? e.touches[0].clientY : e.clientY;
+      // Threshold: distinguish a tap from a drag.
+      const st = pointerStartRef.current;
+      if (!st.moved && Math.hypot(cx - st.x, cy - st.y) > 5) {
+        st.moved = true;
+      }
+      if (!st.moved) return; // don't reposition on micro-movements
       const x = clamp(((cx - rect.left) / rect.width) * 100, 3, 97);
       const y = clamp(((cy - rect.top) / rect.height) * 100, 3, 97);
       setPlayers(ps => ps.map(p => p.id === draggingId ? { ...p, x, y } : p));
     };
-    const up = () => setDraggingId(null);
+    const up = () => {
+      // If pointer didn't move past the drag threshold, treat as a tap
+      // and open the bottom sheet for the tapped jersey.
+      if (!pointerStartRef.current.moved) {
+        setSheetOpenId(draggingId);
+      }
+      setDraggingId(null);
+    };
     window.addEventListener('mousemove', move);
     window.addEventListener('mouseup', up);
     window.addEventListener('touchmove', move, { passive: false });
@@ -1054,6 +1072,19 @@ export default function FormationStudio() {
   const selectedPlayer = players.find(p => p.id === selectedId);
   const updateSelected = (patch) => {
     setPlayers(ps => ps.map(p => p.id === selectedId ? { ...p, ...patch } : p));
+  };
+
+  /* bottom sheet: close on Esc */
+  useEffect(() => {
+    if (sheetOpenId === null) return;
+    const onKey = (e) => { if (e.key === 'Escape') setSheetOpenId(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sheetOpenId]);
+
+  const sheetPlayer = players.find(p => p.id === sheetOpenId);
+  const updateSheetPlayer = (patch) => {
+    setPlayers(ps => ps.map(p => p.id === sheetOpenId ? { ...p, ...patch } : p));
   };
 
   const randomizeNames = () => {
@@ -2110,6 +2141,144 @@ export default function FormationStudio() {
           showNames={showNames}
         />
       </div>
+
+      {/* ===== BOTTOM SHEET (jersey editor) ===== */}
+      {(() => {
+        const open = sheetPlayer != null;
+        const sel = sheetPlayer;
+        const keeper = sel ? isKeeper(sel.pos) : false;
+        const selColor = sel ? (keeper ? gkPrimary : primary) : '#fff';
+        return (
+          <>
+            {/* Backdrop */}
+            <div
+              onClick={() => setSheetOpenId(null)}
+              style={{
+                position: 'fixed', inset: 0,
+                background: 'rgba(0,0,0,0.55)',
+                opacity: open ? 1 : 0,
+                pointerEvents: open ? 'auto' : 'none',
+                transition: 'opacity 200ms ease',
+                zIndex: 80,
+              }}
+            />
+            {/* Sheet */}
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Player editor"
+              style={{
+                position: 'fixed', left: 0, right: 0, bottom: 0,
+                maxWidth: 420, marginLeft: 'auto', marginRight: 'auto',
+                background: '#0f0f0f',
+                borderTop: '1px solid #1f1f1f',
+                borderLeft: '1px solid #1f1f1f',
+                borderRight: '1px solid #1f1f1f',
+                boxShadow: '0 -16px 40px rgba(0,0,0,0.6)',
+                transform: open ? 'translateY(0)' : 'translateY(100%)',
+                transition: 'transform 200ms ease',
+                zIndex: 90,
+                maxHeight: '50vh',
+                overflowY: 'auto',
+                padding: '16px 18px 22px',
+              }}
+            >
+              {sel && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {/* header row with close */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    marginBottom: 2,
+                  }}>
+                    <div className="mono" style={{
+                      fontSize: 9, color: '#666', letterSpacing: '0.2em',
+                    }}>EDIT PLAYER</div>
+                    <button
+                      onClick={() => setSheetOpenId(null)}
+                      aria-label="Close"
+                      style={{
+                        background: 'transparent', border: '1px solid #1f1f1f',
+                        color: '#888', width: 28, height: 28, cursor: 'pointer',
+                        fontSize: 14, lineHeight: 1, padding: 0,
+                      }}
+                    >✕</button>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {sel.photo ? (
+                      <div style={{
+                        width: 56, height: 56, borderRadius: '50%',
+                        border: `3px solid ${selColor}`, overflow: 'hidden',
+                        flexShrink: 0,
+                      }}>
+                        <img src={sel.photo} alt="" style={{
+                          width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                        }}/>
+                      </div>
+                    ) : (
+                      <div className="display" style={{
+                        fontSize: 40, color: selColor, lineHeight: 1,
+                      }}>#{sel.number}</div>
+                    )}
+                    <div>
+                      <div className="mono" style={{ fontSize: 9, color: '#888', letterSpacing: '0.15em' }}>
+                        POSITION {keeper && <span style={{ color: '#d4ff3d' }}>· KEEPER KIT</span>}
+                      </div>
+                      <div className="display" style={{ fontSize: 18, color: '#d4ff3d' }}>{sel.pos}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: 6 }}>
+                    <div>
+                      <label className="mono" style={{ fontSize: 8, color: '#888', letterSpacing: '0.15em' }}>NUM</label>
+                      <input type="number" value={sel.number} min={0} max={99}
+                        onChange={e => updateSheetPlayer({ number: parseInt(e.target.value) || 0 })}/>
+                    </div>
+                    <div>
+                      <label className="mono" style={{ fontSize: 8, color: '#888', letterSpacing: '0.15em' }}>SURNAME</label>
+                      <input type="text" value={sel.name} maxLength={14}
+                        placeholder="e.g. MBAPPE"
+                        onChange={e => updateSheetPlayer({ name: e.target.value.toUpperCase() })}/>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="mono" style={{ fontSize: 8, color: '#888', letterSpacing: '0.15em' }}>POSITION TAG</label>
+                    <input type="text" value={sel.pos} maxLength={5}
+                      onChange={e => updateSheetPlayer({ pos: e.target.value.toUpperCase() })}/>
+                  </div>
+
+                  <div style={{ marginTop: 4 }}>
+                    <label className="mono" style={{
+                      fontSize: 8, color: '#888', letterSpacing: '0.15em', marginBottom: 4, display: 'block',
+                    }}>PHOTO</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <label className="btn" style={{
+                        flex: 1, textAlign: 'center', display: 'inline-block',
+                      }}>
+                        {sel.photo ? '↻ REPLACE' : '↑ UPLOAD'}
+                        <input type="file" accept="image/*"
+                          onChange={e => uploadPhotoFor(sel.id, e.target.files[0])}
+                          style={{ display: 'none' }}/>
+                      </label>
+                      {sel.photo && (
+                        <button className="btn" onClick={() => updateSheetPlayer({ photo: null })}
+                          style={{ color: '#ff6b8a' }}>
+                          ✕ REMOVE
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mono" style={{ fontSize: 9, color: '#555', marginTop: 4, letterSpacing: '0.1em' }}>
+                    X {sel.x.toFixed(0)} · Y {sel.y.toFixed(0)}
+                  </div>
+                </div>
+              )}
+            </div>
+          </>
+        );
+      })()}
 
       {/* ===== FOOTER ===== */}
       <footer style={{
