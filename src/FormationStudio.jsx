@@ -1437,14 +1437,13 @@ export default function FormationStudio() {
         .btn-primary:hover { background: #b8e032; }
         .chip {
           padding: 6px 10px; border: 1px solid #2a2a2a; background: #141414;
+          color: #ffffff;
           font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
           text-transform: uppercase; cursor: pointer; white-space: nowrap;
           font-family: 'JetBrains Mono', monospace;
         }
         .chip:hover { border-color: #666; }
         .chip.active { background: #d4ff3d; color: #0a0a0a; border-color: #d4ff3d; }
-        /* inactive formation chips: lime text for readability against dark bg */
-        .chip-formation:not(.active) { color: #d4ff3d; }
         .grid-noise {
           background-image:
             linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
