@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { track } from '@vercel/analytics';
 
 /* ============================================================
    FORMATION STUDIO — a lineup builder for team sports
@@ -1120,6 +1121,7 @@ export default function FormationStudio() {
         ctx.drawImage(img, sx, sy, side, side, 0, 0, canvas.width, canvas.height);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
         setPlayers(ps => ps.map(p => p.id === id ? { ...p, photo: dataUrl } : p));
+        track('photo_uploaded', { sport: sportId });
       };
       img.src = ev.target.result;
     };
@@ -1160,6 +1162,7 @@ export default function FormationStudio() {
       setStorageMsg(`✓ SAVED "${name}"`);
       setSaveName('');
       refreshLibrary();
+      track('lineup_saved', { sport: sportId, formation });
       setTimeout(() => setStorageMsg(''), 2500);
     } catch (e) {
       setStorageMsg('✕ SAVE FAILED');
@@ -1255,6 +1258,7 @@ export default function FormationStudio() {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(dlUrl), 2000);
+      track('lineup_exported', { sport: sportId, format: exportFormat });
     } catch (e) {
       console.error('Export failed', e);
       alert('Export failed — check the console for details.');
@@ -1285,6 +1289,7 @@ export default function FormationStudio() {
       const url = `${window.location.origin}${window.location.pathname}#${SHARE_PARAM}=${encoded}`;
       setShareUrl(url);
       setShareStatus('');
+      track('lineup_shared', { sport: sportId, includePhotos: shareIncludePhotos });
     } catch (e) {
       console.error(e);
       setShareStatus('✕ GENERATION FAILED');
