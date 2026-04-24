@@ -676,13 +676,14 @@ const JerseySVG = ({ cx, cy, primary, secondary, text, number, name, pos, showNa
         <text x={r*0.72} y={r*0.72 + 4*s} textAnchor="middle"
           fill={text} fontFamily="Impact, 'Arial Black', sans-serif"
           fontSize={13*s} fontWeight="900">{number}</text>
-        <rect x={-18*s} y={r + 4} width={36*s} height={14*s}
+        {/* position tag — rendered BEFORE name so name draws on top if they ever overlap */}
+        <rect x={-18*s} y={r + 8*s} width={36*s} height={14*s}
           fill="#0a0a0a" stroke={primary} strokeWidth={1.5}/>
-        <text x="0" y={r + 13*s} textAnchor="middle"
+        <text x="0" y={r + 18*s} textAnchor="middle"
           fill="#fff" fontFamily="Impact, 'Arial Black', sans-serif"
           fontSize={9*s} letterSpacing={0.8}>{pos}</text>
         {showName && name && (
-          <text x="0" y={r + 32*s} textAnchor="middle"
+          <text x="0" y={r + 44*s} textAnchor="middle"
             fill="#fff" fontFamily="'Arial Narrow', Arial, sans-serif"
             fontSize={14*s} fontWeight="700" letterSpacing={0.5}
             stroke="rgba(0,0,0,0.9)" strokeWidth={0.6} paintOrder="stroke">
@@ -707,13 +708,14 @@ const JerseySVG = ({ cx, cy, primary, secondary, text, number, name, pos, showNa
           fill={text} fontFamily="Impact, 'Arial Black', sans-serif"
           fontSize={W*0.38} fontWeight="900" letterSpacing={-0.5}>{number}</text>
       </g>
+      {/* position tag — rendered BEFORE name so name draws on top if they ever overlap */}
       <rect x={-16*s} y={W*0.38} width={32*s} height={12*s}
         fill="#0a0a0a" stroke={primary} strokeWidth={1.3}/>
       <text x="0" y={W*0.38 + 8.5*s} textAnchor="middle"
         fill="#fff" fontFamily="Impact, 'Arial Black', sans-serif"
         fontSize={8.5*s} letterSpacing={0.7}>{pos}</text>
       {showName && name && (
-        <text x="0" y={W*0.62} textAnchor="middle"
+        <text x="0" y={W*0.38 + 34*s} textAnchor="middle"
           fill="#fff" fontFamily="'Arial Narrow', Arial, sans-serif"
           fontSize={13*s} fontWeight="700" letterSpacing={0.5}
           stroke="rgba(0,0,0,0.9)" strokeWidth={0.5} paintOrder="stroke">
